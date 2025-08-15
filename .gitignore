@@ -205,3 +205,4 @@ __marimo__/
 *.beancount
 *.ledger
 ./data/*
+*.db
