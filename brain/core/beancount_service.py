@@ -2,10 +2,38 @@
 from datetime import date as Date
 from decimal import Decimal
 from pathlib import Path
-
+from typing import List
 from beancount.core import data, amount, number
 from beancount.parser import printer
 from beancount import loader
+import fcntl  # Unix only
+
+def _safe_append_to_file(path: Path, text: str, lock: bool = True):
+    with open(path, "a", encoding="utf-8") as f:
+        if lock:
+            fcntl.flock(f, fcntl.LOCK_EX)
+        f.write(text)
+        if lock:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+def get_all_accounts(ledger_path: str) -> set[str]:
+    entries, _, _ = loader.load_file(ledger_path)
+    accounts = {entry.account for entry in entries if isinstance(entry, data.Open)}
+    return accounts
+
+def get_recent_transactions(ledger_path: str, account: str, limit: int = 5) -> List[data.Transaction]:
+    entries, _, _ = loader.load_file(ledger_path)
+    txns = [
+        entry for entry in entries
+        if isinstance(entry, data.Transaction)
+        and any(post.account == account for post in entry.postings)
+    ]
+    return txns[-limit:]
+
+def print_recent_transactions(ledger_path: str, account: str, limit: int = 5):
+    txns = get_recent_transactions(ledger_path, account, limit)
+    for txn in txns:
+        print(printer.format_entry(txn))
 
 
 def append_simple_tx(
@@ -92,7 +120,7 @@ def append_simple_tx(
     if errors:
         raise ValueError(f"Beancount validation failed: {errors[0]}")
 
-    ledger.write_text(candidate, encoding="utf-8")
+    _safe_append_to_file(ledger, open_block + rendered_tx + "\n")
 
 
 if __name__ == "__main__":
@@ -107,3 +135,5 @@ if __name__ == "__main__":
         narration="Grocery run",
     )
     print("Transaction appended to ledger.beancount")
+    print(get_all_accounts("/data/budget.beancount"))
+    print_recent_transactions("/data/budget.beancount", "Expenses:Personal:Gifts")
