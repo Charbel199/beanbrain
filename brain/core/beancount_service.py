@@ -42,11 +42,25 @@ def get_recent_transactions(ledger_path: str, account: str, limit: int = 5) -> L
     ]
     return txns[-limit:]
 
-def print_recent_transactions(ledger_path: str, account: str, limit: int = 5):
+def format_recent_transactions(ledger_path: str, account: str, limit: int = 5) -> str:
     txns = get_recent_transactions(ledger_path, account, limit)
-    for txn in txns:
-        print(printer.format_entry(txn))
+    formatted_txns = [printer.format_entry(txn) for txn in txns]
+    return "\n".join(formatted_txns)
 
+def get_recent_narrations_and_payees(ledger_path: str, account: str, limit: int = 5) -> list[tuple[str, str]]:
+    entries, _, _ = loader.load_file(ledger_path)
+    txns = [
+        entry for entry in entries
+        if isinstance(entry, data.Transaction)
+        and any(post.account == account for post in entry.postings)
+    ]
+
+    recent = txns[-limit:]
+    result = [
+        (txn.narration.strip(), txn.payee.strip() if txn.payee else "")
+        for txn in recent
+    ]
+    return result
 
 def append_simple_tx(
     ledger_path: str,
@@ -71,9 +85,7 @@ def append_simple_tx(
             "Grocery run"
         )
     """
-    print("HI")
     ledger = Path(ledger_path)
-    print(ledger)
     ledger.parent.mkdir(parents=True, exist_ok=True)
 
     original_text = ledger.read_text(encoding="utf-8") if ledger.exists() else ""
@@ -148,4 +160,4 @@ if __name__ == "__main__":
     )
     print("Transaction appended to ledger.beancount")
     print(get_all_accounts_grouped("/data/budget.beancount"))
-    print_recent_transactions("/data/budget.beancount", "Expenses:Personal:Gifts")
+    print(format_recent_transactions("/data/budget.beancount", "Expenses:Personal:Gifts"))
