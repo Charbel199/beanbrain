@@ -2,11 +2,12 @@
 from datetime import date as Date
 from decimal import Decimal
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 from beancount.core import data, amount, number
 from beancount.parser import printer
 from beancount import loader
 import fcntl  # Unix only
+from collections import defaultdict
 
 def _safe_append_to_file(path: Path, text: str, lock: bool = True):
     with open(path, "a", encoding="utf-8") as f:
@@ -16,10 +17,21 @@ def _safe_append_to_file(path: Path, text: str, lock: bool = True):
         if lock:
             fcntl.flock(f, fcntl.LOCK_UN)
 
-def get_all_accounts(ledger_path: str) -> set[str]:
+def get_all_accounts_grouped(ledger_path: str) -> Dict[str, List[str]]:
     entries, _, _ = loader.load_file(ledger_path)
-    accounts = {entry.account for entry in entries if isinstance(entry, data.Open)}
-    return accounts
+    grouped_accounts = defaultdict(list)
+
+    for entry in entries:
+        if isinstance(entry, data.Open):
+            account_type = entry.account.split(":")[0]
+            grouped_accounts[account_type].append(entry.account)
+
+    # Optional: sort accounts in each category
+    for group in grouped_accounts:
+        grouped_accounts[group].sort()
+
+    return dict(grouped_accounts)
+
 
 def get_recent_transactions(ledger_path: str, account: str, limit: int = 5) -> List[data.Transaction]:
     entries, _, _ = loader.load_file(ledger_path)
@@ -135,5 +147,5 @@ if __name__ == "__main__":
         narration="Grocery run",
     )
     print("Transaction appended to ledger.beancount")
-    print(get_all_accounts("/data/budget.beancount"))
+    print(get_all_accounts_grouped("/data/budget.beancount"))
     print_recent_transactions("/data/budget.beancount", "Expenses:Personal:Gifts")
