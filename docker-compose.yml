@@ -1,18 +1,15 @@
 services:
   fava:
-    image: yegle/fava:latest
-    container_name: fava
+    image: fava
+    build:
+      context: ./fava
+      dockerfile: docker/Dockerfile
     ports:
       - ${FAVA_EXTERNAL_PORT}:5000
-    environment:
-      # yegle/fava sets FAVA_HOST=0.0.0.0 by default; we keep it explicit
-      FAVA_HOST: "0.0.0.0"
-      FAVA_PORT: "5000"
     volumes:
-      - ./data/${LOCAL_BEANCOUNT_FILE_NAME}:/budget.beancount:rw
-    command: ["budget.beancount"]
+      - ./data/${LOCAL_BEANCOUNT_FILE_NAME}:/data/budget.beancount:rw
+    command: fava --host 0.0.0.0 --port 5000 --poll-watcher /data/budget.beancount
     restart: unless-stopped
-
 
   ############################################
   # BACKEND
@@ -24,20 +21,11 @@ services:
       dockerfile: docker/Dockerfile
     ports:
       - "${BRAIN_EXTERNAL_PORT}:8000"
-    # environment:
-    #   - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-    #   - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES}
-    #   - JWT_ALGORITHM=${JWT_ALGORITHM}
-
-    #   - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-    #   - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-
-    #   - DATABASE_URL=${DATABASE_URL}
-    #   - FRONTEND_URL=${FRONTEND_URL}
-    #   - ADMIN_EMAIL=${ADMIN_EMAIL}
-    #   - ADMIN_USERNAME=${ADMIN_USERNAME}
-    #   - TARGET_ENV=${TARGET_ENV}
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
     volumes:
-      - ./brain:/app 
+      - ./brain:/app
+      - ./data:/data
+      - ./data/${LOCAL_BEANCOUNT_FILE_NAME}:/data/budget.beancount:rw
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
