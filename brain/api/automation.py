@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from domain.schemas.database import get_db
 from domain.models.dtos import AutomationCreate, AutomationUpdate, AutomationOut
 from core.automation_service import AutomationService
-from core.beancount_service import BeancountService
 from typing import List
 from conf import BEANCOUNT_FILE
 
@@ -11,8 +10,7 @@ router = APIRouter(prefix="/automation", tags=["Automation"])
 
 
 def get_service(db: Session = Depends(get_db)) -> AutomationService:
-    beancount = BeancountService(ledger_path=BEANCOUNT_FILE)
-    return AutomationService(db=db, beancount=beancount)
+    return AutomationService(db=db)
 
 @router.post("/automations", response_model=AutomationOut)
 def create_automation(body: AutomationCreate, automation_service: AutomationService = Depends(get_service)):

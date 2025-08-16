@@ -1,112 +1,109 @@
-from __future__ import annotations
+# beancount_simple.py
 from datetime import date as Date
 from decimal import Decimal
 from pathlib import Path
-from typing import Iterable, Optional
-
-from filelock import FileLock
 
 from beancount.core import data, amount, number
 from beancount.parser import printer
 from beancount import loader
 
 
-class BeancountService:
+def append_simple_tx(
+    ledger_path: str,
+    tx_date: Date,
+    amount_value: Decimal | float | str,
+    currency: str,
+    from_account: str,
+    to_account: str,
+    narration: str = "",
+    payee: str | None = None,
+    auto_open_accounts: bool = True,
+) -> None:
     """
-    Append valid Beancount transactions using the official library.
+    Append a simple 2-posting transaction to a Beancount ledger.
 
-    Example postings input:
-      [
-        {"account": "Assets:Bank:Checking", "amount": -1200.00, "currency": "EUR"},
-        {"account": "Expenses:Rent"}  # balancing leg with no amount
-      ]
-    """
-
-    def __init__(self, ledger_path: str):
-        self.ledger_path = Path(ledger_path)
-        self.lock_path = self.ledger_path.with_suffix(".lock")
-        self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
-
-    def add_entry(
-        self,
-        payee: str,
-        narration: str,
-        postings: Iterable[dict],
-        entry_date: Optional[Date] = None,
-        flag: str = "*",
-        meta: Optional[dict] = None,
-    ):
-        """
-        Create a Transaction and append to the ledger file after validating parse.
-        - postings: iterable of dicts with keys:
-            - account (str, required)
-            - amount (float|Decimal|str, optional for balancing leg)
-            - currency (str, required if amount present)
-        - entry_date: defaults to today.
-        - meta: dict of key/values added to the transaction metadata (not line comments).
-        """
-        entry_date = entry_date or Date.today()
-
-        # Build metadata (filename/lineno are mostly informational)
-        tx_meta = data.new_metadata(str(self.ledger_path), 0)
-        if meta:
-            # Copy user meta into metadata map
-            tx_meta.update({str(k): v for k, v in meta.items()})
-
-        # Build postings
-        built_postings = []
-        for p in postings:
-            account_name = p["account"]
-            amt = p.get("amount", None)
-            cur = p.get("currency", None)
-
-            beancount_amt = None
-            if amt is not None:
-                # Convert to Decimal via beancount.number.D for consistent quantization
-                dec = number.D(str(amt)) if not isinstance(amt, Decimal) else amt
-                beancount_amt = amount.Amount(dec, cur or "")
-
-            built_postings.append(
-                data.Posting(
-                    account=account_name,
-                    units=beancount_amt,   # None means balancing leg
-                    cost=None,
-                    price=None,
-                    flag=None,
-                    meta=None,
-                )
-            )
-
-        # Construct the Transaction node
-        txn = data.Transaction(
-            meta=tx_meta,
-            date=entry_date,
-            flag=flag,
-            payee=payee,
-            narration=narration,
-            tags=set(),
-            links=set(),
-            postings=built_postings,
+    Example:
+        append_simple_tx(
+            "ledger.beancount",
+            Date(2025, 8, 16),
+            50, "USD",
+            "Assets:Cash", "Expenses:Groceries",
+            "Grocery run"
         )
+    """
+    print("HI")
+    ledger = Path(ledger_path)
+    print(ledger)
+    ledger.parent.mkdir(parents=True, exist_ok=True)
 
-        # Render to Beancount syntax
-        rendered = printer.format_entry(txn)
+    original_text = ledger.read_text(encoding="utf-8") if ledger.exists() else ""
 
-        # Validate by parsing the whole ledger plus new entry before writing
-        lock = FileLock(str(self.lock_path))
-        with lock:
-            original_text = ""
-            if self.ledger_path.exists():
-                original_text = self.ledger_path.read_text(encoding="utf-8")
+    # Collect existing opened accounts (only from 'open' directives for simplicity)
+    existing_accounts = set()
+    if original_text:
+        entries, _, _ = loader.load_string(original_text)
+        for e in entries:
+            if isinstance(e, data.Open):
+                existing_accounts.add(e.account)
 
-            candidate_text = original_text.rstrip() + ("\n\n" if original_text else "") + rendered + "\n"
+    # Build transaction
+    meta = data.new_metadata(str(ledger), 0)
+    quant = number.D(str(amount_value))
+    units = amount.Amount(quant, currency)
+    neg_units = amount.Amount(-quant, currency)
 
-            # Parse to ensure we're not corrupting the ledger
-            _, errors, _ = loader.load_string(candidate_text)
-            if errors:
-                # Bubble up the first parse error with its message
-                msg = errors[0].message if hasattr(errors[0], "message") else str(errors[0])
-                raise ValueError(f"Beancount validation failed: {msg}")
+    postings = [
+        data.Posting(from_account, neg_units, None, None, None, None),
+        data.Posting(to_account,   units,    None, None, None, None),
+    ]
 
-            # Write only after successful parse
-            self.ledger_path.write_text(candidate_text, encoding="utf-8")
+    txn = data.Transaction(
+        meta=meta,
+        date=tx_date,
+        flag="*",
+        payee=payee,
+        narration=narration,
+        tags=set(),
+        links=set(),
+        postings=postings,
+    )
+
+    # Auto-open any missing accounts
+    open_block = ""
+    if auto_open_accounts:
+        needed = {from_account, to_account} - existing_accounts
+        if needed:
+            opens = []
+            for acct in sorted(needed):
+                ometa = data.new_metadata(str(ledger), 0)
+                opens.append(printer.format_entry(data.Open(ometa, tx_date, acct, [], None)))
+            open_block = "\n".join(opens) + "\n"
+
+    # Render candidate ledger and validate before writing
+    rendered_tx = printer.format_entry(txn)
+    candidate = (
+        (original_text.rstrip() + "\n\n" if original_text else "")
+        + open_block
+        + rendered_tx
+        + "\n"
+    )
+
+    _, errors, _ = loader.load_string(candidate)
+    if errors:
+        raise ValueError(f"Beancount validation failed: {errors[0]}")
+
+    ledger.write_text(candidate, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    # Minimal example
+    append_simple_tx(
+        ledger_path="/data/budget.beancount",
+        tx_date=Date(2025, 8, 16),
+        amount_value=50,
+        currency="USD",
+        from_account="Assets:LB:LGB:Savings",
+        to_account="Expenses:Personal:Gifts",
+        narration="Grocery run",
+    )
+    print("Transaction appended to ledger.beancount")
