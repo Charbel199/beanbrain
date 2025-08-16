@@ -1,9 +1,7 @@
 import os
-BEANCOUNT_FILE=os.getenv(
-    "BEANCOUNT_FILE", "./budget.beancount"
-)
+BEANCOUNT_FILE="/data/budget.beancount"
 DEFAULT_TZ = os.getenv(
-    "DEFAULT_TZ", "UTC"
+    "DEFAULT_TZ", "Asia/Beirut"
 )
 DATABASE_URL = os.getenv(
     "DATABASE_URL", "sqlite:///./automations.db"

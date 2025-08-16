@@ -7,14 +7,16 @@ from pydantic import BaseModel, Field, conint
 from sqlalchemy import (
     create_engine, Column, Integer, String, Boolean, DateTime, JSON, Float
 )
+from domain.schemas.database import get_db
+from core.automation_service import AutomationService
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.base import ConflictingIdError
 from dateutil.tz import gettz
 from api import automation
-from conf  import DEFAULT_TZ
-from domain.schemas.database import Base, engine
+from conf  import DEFAULT_TZ, BEANCOUNT_FILE
+from domain.schemas.database import Base, engine, SessionLocal
 # --------------------------
 # APScheduler
 # --------------------------
@@ -32,11 +34,15 @@ app.add_middleware(
     allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
-
 @app.on_event("startup")
 async def startup_event():
-    """Create database tables on startup."""
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        service = AutomationService(db=db)
+        service.resync_all()
+    finally:
+        db.close()
 
 
 app.include_router(automation.router)
