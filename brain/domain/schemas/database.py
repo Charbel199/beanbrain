@@ -40,7 +40,6 @@ def set_pg_timezone(dbapi_connection, connection_record):
 # autocommit=False: Requires explicit session.commit() for changes to be persisted.
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
-Base.metadata.create_all(bind=engine) 
 def get_db():
     db = SessionLocal()
     try:
