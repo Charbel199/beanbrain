@@ -1,19 +1,7 @@
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, conint
-from sqlalchemy import (
-    create_engine, Column, Integer, String, Boolean, DateTime, JSON, Float
-)
-from domain.schemas.database import get_db
 from core.automation_service import AutomationService
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-from apscheduler.jobstores.base import ConflictingIdError
-from dateutil.tz import gettz
 from api import automation, llm
 from conf  import DEFAULT_TZ, BEANCOUNT_FILE
 from domain.schemas.database import Base, engine, SessionLocal
