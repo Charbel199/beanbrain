@@ -4,7 +4,6 @@ from domain.schemas.database import get_db
 from domain.models.dtos import AutomationCreate, AutomationUpdate, AutomationOut
 from core.automation_service import AutomationService
 from typing import List
-from conf import BEANCOUNT_FILE
 
 router = APIRouter(prefix="/automation", tags=["Automation"])
 

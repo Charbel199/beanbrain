@@ -1,7 +1,10 @@
 from apscheduler.schedulers.background import BackgroundScheduler
+import conf
+from dateutil.tz import gettz
 
 # Single scheduler instance
-scheduler = BackgroundScheduler(timezone="UTC")
+tz = gettz(conf.DEFAULT_TZ)
+scheduler = BackgroundScheduler(timezone=tz)
 scheduler.start()
 
 

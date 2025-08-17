@@ -1,4 +1,3 @@
-# beancount_simple.py
 from datetime import date as Date
 from decimal import Decimal
 from pathlib import Path

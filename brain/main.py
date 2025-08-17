@@ -5,18 +5,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from api import automation, llm
 from conf  import DEFAULT_TZ, BEANCOUNT_FILE
 from domain.schemas.database import Base, engine, SessionLocal
-# --------------------------
-# APScheduler
-# --------------------------
+
 scheduler = BackgroundScheduler(timezone=DEFAULT_TZ)
 scheduler.start()
 
 
-
-# --------------------------
-# FastAPI app
-# --------------------------
-app = FastAPI(title="Recurring Automations API", version="0.1.0")
+app = FastAPI(title="Beancount Automations API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
