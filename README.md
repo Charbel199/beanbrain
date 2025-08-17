@@ -1,31 +1,23 @@
 # BeanBrain
 
-Beancount was able to scratch my brain in a really nice way and with fava for the frontend, I believe that this is the main thing I need to track all my finances.
+[Beancount](https://github.com/beancount/beancount) is great, but I kept running into these issues:
+- I couldn't add transactions while driving (safely without typing).
+- I couldn't access my finances and add entries from anywhere.
+- I kept forgetting to log my spotify and google recurring payments.
 
-Unfortunately, a couple of features were missing and I needed to self-host it in order to reach it from anywnere.
-
-Thus beanbrain was born, automation + self-hosting
-
-
-
-## Features
+Thus, I present **BeanBrain**, a self-hosted automation layer for Beancount that adds recurring transactions, LLM-powered entry creation, and backups, so you can manage your finances better (with Fava) from anywhere.
 
 ## Features
 
-- **Recurring Transactions**  
-  Automatically create transactions on daily, weekly, monthly, or yearly schedules using flexible cron expressions.
+- **Recurring Transactions**: Automatically create transactions on daily, weekly, monthly, or yearly schedules using flexible cron expressions.
 
-- **REST API**  
-  Clean and well-documented endpoints for easy extensibility based on what is needed.
+- **LLM-Powered Entry Creation**: Just describe a transaction in plain language and a language model will infer accounts, amounts, and generate a proper Beancount entry.
 
-- **Fava Frontend**  
-  We love [Fava](https://beancount.github.io/fava/), an open-source web interface for browsing and analyzing your Beancount ledger.
+- **Fava Frontend**: We love [Fava](https://beancount.github.io/fava/), an open-source web interface for browsing and analyzing your Beancount ledger.
 
-- **Easy Deployment**  
-  Fully Docker-ready with Compose support, self-hosting is quick and simple.
+- **Easy Deployment**: Fully Docker-ready with Compose support, self-hosting is quick and simple.
 
-- **Optional Backups**  
-  Easily enable automatic backups of your Beancount file to Google Drive for peace of mind.
+- **Optional Backups**: Easily enable automatic backups of your Beancount file to Google Drive for peace of mind.
 
 
 
@@ -60,14 +52,8 @@ cp /path/to/your/ledger.beancount ./data/budget.beancount
 LOCAL_BEANCOUNT_FILE_NAME=your-ledger.beancount
 ```
 
-### 3. Launch the Services
 
-```bash
-# Start all services
-docker-compose --env-file=./.env up -d
-```
-
-### 4. (Optional) Set Up Rclone for Cloud Backups
+### 3. (Optional) Set Up Rclone for Cloud Backups
 
 If you want to back up your Beancount files to a cloud service like Google Drive or Dropbox using `rclone`, follow these steps.
 
@@ -87,7 +73,19 @@ Follow the interactive prompts to create a remote (e.g., `gdrive`) for your pref
 
 > ⚠️ **Note:** Avoid using `sudo rclone config` unless necessary. Using `sudo` can store the config in the root user’s home, making it inaccessible to your app. Always run `rclone config` as your normal user.
 
-And go for the rclone built-in client and secret, we will only be doing a backup once or twice a day
+And go for the rclone built-in client and secret (Keep them empty), we will only be doing a backup once or twice a day
+
+
+### 4. Launch the Services
+
+```bash
+# Start all services
+docker compose --profile backup --env-file=./.env up -d
+
+# Start only the main services
+docker compose --env-file=./.env up -d
+```
+
 
 ### 5. Access Your Services
 
@@ -161,7 +159,7 @@ curl -X PATCH "http://localhost:BRAIN_EXTERNAL_PORT/automation/automations/1" \
 - **`brain/`**: Core automation engine
 - **`fava/`**: Web interface for Beancount
 - **`backup/`**: Backup script
-- **`data/`**: Your financial data and Beancount files
+- **`data/`**: Your beancount file, backups and db
 
 ## License
 

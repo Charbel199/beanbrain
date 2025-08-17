@@ -51,3 +51,4 @@ services:
       - ./data:/data
       - ./data/${LOCAL_BEANCOUNT_FILE_NAME}:/data/budget.beancount:rw
       - ~/.config/rclone:/root/.config/rclone
+    profiles: ["backup"]
