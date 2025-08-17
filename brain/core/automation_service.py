@@ -19,14 +19,16 @@ from domain.models.dtos import (
 from core.log.logging_service import get_logger
 logger = get_logger(__name__)
 from infrastructure.persistence.automation_repository import AutomationRepository
-from infrastructure.scheduler.scheduler import scheduler, remove_job_if_exists, print_all_jobs
 from core.beancount_service import append_simple_tx
 from conf import BEANCOUNT_FILE
+from infrastructure.scheduler.scheduler_service import remove_job_if_exists
 
 class AutomationService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, scheduler):
         self.db = db
         self.repo = AutomationRepository(db)
+        self.scheduler = scheduler
+
 
 
     def create(self, body: AutomationCreate) -> AutomationOut:
@@ -35,7 +37,6 @@ class AutomationService:
         return self._to_out(a)
 
     def list(self) -> List[AutomationOut]:
-        print(print_all_jobs())
         return [self._to_out(a) for a in self.repo.list()]
 
     def get(self, id_: int) -> AutomationOut:
@@ -63,7 +64,7 @@ class AutomationService:
         a = self.repo.get(id_)
         if not a:
             raise HTTPException(status_code=404, detail="Not found")
-        remove_job_if_exists(a.id)
+        remove_job_if_exists(a.id, self.scheduler)
         self.repo.delete(a)
 
     def resync_all(self) -> None:
@@ -75,7 +76,7 @@ class AutomationService:
     def _schedule(self, a: AutomationDB) -> None:
 
         # Always clear any prior job for this automation
-        remove_job_if_exists(a.id)
+        remove_job_if_exists(a.id, self.scheduler)
         if not a.enabled:
             return
 
@@ -100,7 +101,7 @@ class AutomationService:
                 timezone=tz
             )
 
-            scheduler.add_job(
+            self.scheduler.add_job(
                 func=self._execute_by_id,
                 trigger=trigger,
                 args=[a.id],

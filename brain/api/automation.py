@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from domain.schemas.database import get_db
 from domain.models.dtos import AutomationCreate, AutomationUpdate, AutomationOut
@@ -8,8 +8,11 @@ from typing import List
 router = APIRouter(prefix="/automation", tags=["Automation"])
 
 
-def get_automation_service(db: Session = Depends(get_db)) -> AutomationService:
-    return AutomationService(db=db)
+def get_automation_service(
+    request: Request, db: Session = Depends(get_db)
+) -> AutomationService:
+    scheduler = request.app.state.scheduler
+    return AutomationService(db=db, scheduler=scheduler)
 
 @router.post("", response_model=AutomationOut)
 def create_automation(body: AutomationCreate, automation_service: AutomationService = Depends(get_automation_service)):
