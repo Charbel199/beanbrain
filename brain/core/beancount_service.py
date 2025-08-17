@@ -17,6 +17,9 @@ def _safe_append_to_file(path: Path, text: str, lock: bool = True):
         if lock:
             fcntl.flock(f, fcntl.LOCK_UN)
 
+
+# Beancount specific functionalities
+
 def get_all_accounts_grouped(ledger_path: str) -> Dict[str, List[str]]:
     entries, _, _ = loader.load_file(ledger_path)
     grouped_accounts = defaultdict(list)
@@ -31,7 +34,6 @@ def get_all_accounts_grouped(ledger_path: str) -> Dict[str, List[str]]:
         grouped_accounts[group].sort()
 
     return dict(grouped_accounts)
-
 
 def get_recent_transactions(ledger_path: str, account: str, limit: int = 5) -> List[data.Transaction]:
     entries, _, _ = loader.load_file(ledger_path)
@@ -154,10 +156,10 @@ if __name__ == "__main__":
         tx_date=Date(2025, 8, 16),
         amount_value=50,
         currency="USD",
-        from_account="Assets:LB:LGB:Savings",
-        to_account="Expenses:Personal:Gifts",
+        from_account="Assets:Bank:Savings",
+        to_account="Expenses:Personal:Groceries",
         narration="Grocery run",
     )
     print("Transaction appended to ledger.beancount")
     print(get_all_accounts_grouped("/data/budget.beancount"))
-    print(format_recent_transactions("/data/budget.beancount", "Expenses:Personal:Gifts"))
+    print(format_recent_transactions("/data/budget.beancount", "Expenses:Personal:Groceries"))

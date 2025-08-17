@@ -13,10 +13,6 @@ def remove_job_if_exists(job_id: str):
         pass
 
 
-def job_id(automation_id: int) -> str:
-    """Generate a unique job ID for an automation."""
-    return f"auto-{automation_id}"
-
 def print_all_jobs():
     """Print all scheduled jobs with details."""
     jobs = scheduler.get_jobs()
