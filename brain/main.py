@@ -14,7 +14,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.base import ConflictingIdError
 from dateutil.tz import gettz
-from api import automation
+from api import automation, llm
 from conf  import DEFAULT_TZ, BEANCOUNT_FILE
 from domain.schemas.database import Base, engine, SessionLocal
 # --------------------------
@@ -46,3 +46,4 @@ async def startup_event():
 
 
 app.include_router(automation.router)
+app.include_router(llm.router)

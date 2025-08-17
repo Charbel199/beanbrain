@@ -1,23 +1,23 @@
 import json
 import re
 from datetime import date as Date
-from typing import Optional, Dict, Any
-
+from typing import Dict, Any
+import conf
 from openai import OpenAI
 from core.beancount_service import (
     append_simple_tx,
     get_all_accounts_grouped,
-    format_recent_transactions,
+    get_inline_account_comments_map,
     get_recent_narrations_and_payees
 )
 
-LEDGER_PATH = "/data/budget.beancount"
-DEFAULT_CURRENCY = "USD"
+from core.log.logging_service import get_logger
+logger = get_logger(__name__)
 
 class LLMTransactionService:
     def __init__(self, openai_api_key: str):
         self.client = OpenAI(api_key=openai_api_key)
-        self.ledger_path = LEDGER_PATH
+        self.ledger_path = conf.BEANCOUNT_FILE
 
     def _clean_json(self, content: str) -> str:
         if content.startswith("```"):
@@ -40,77 +40,107 @@ class LLMTransactionService:
         except Exception as e:
             raise ValueError(f"Failed to parse LLM response as JSON:\n{content}\nError: {e}")
 
+
     def infer_accounts(self, natural_text: str) -> Dict[str, str]:
         accounts = get_all_accounts_grouped(self.ledger_path)
-
+        accounts_comments = get_inline_account_comments_map(self.ledger_path)
         sections = []
-        for group_name in ["Assets", "Expenses", "Income", "Equity"]:
-            if group_name in accounts:
-                entries = "\n".join(f"  - {acct}" for acct in sorted(accounts[group_name]))
-                sections.append(f"{group_name} Accounts:\n{entries}")
+
+        for group_name, accts in accounts.items():
+            entries = []
+            for acct in sorted(accts):
+                comment = accounts_comments.get(acct)
+                if comment:
+                    entries.append(f"  - {acct}  # {comment}")
+                else:
+                    entries.append(f"  - {acct}")
+            sections.append(f"{group_name} Accounts:\n" + "\n".join(entries))
 
         sample_accounts = "\n\n".join(sections)
         account_prompt = f"""
-You are an assistant that classifies transactions by matching accounts.
+You are a financial assistant that classifies user-described transactions.
 
 Given the user input: \"\"\"{natural_text}\"\"\"
 
-We have the following accounts: 
+And the following list of valid accounts:
 {sample_accounts}
 
-Return a JSON object with:
-- from_account: one of the provided accounts
-- to_account: one of the provided accounts
 
-Choose the most reasonable pair based on typical financial logic.
+Your job is to return a JSON object like this:
+- from_account # The account the money is coming from
+- to_account # The account the money is going to
+
+Guidelines:
+- If the user is describing a **purchase or payment**, then:
+    - "from_account" is the source of funds (e.g. a bank or cash account)
+    - "to_account" is the destination (e.g. an expense or liability account)
+- If the user is describing **income or a deposit**, then:
+    - "from_account" is the origin (e.g. Income:Salary)
+    - "to_account" is the destination (e.g. a bank or asset account)
+- If the user is describing a **transfer between accounts**, then:
+    - Use the appropriate asset or bank accounts for both "from_account" and "to_account"
+- Only use account names that are listed above (ignore comments like # ...)
+- Return only a JSON object with the selected accounts
+
+Return ONLY the JSON. Do not include explanations.
 """
-        print(f"account_prompt: {account_prompt}")
+        logger.info(f"\n================\nInfer account prompt: {account_prompt}\n================")
 
         return self._ask("You help classify Beancount accounts.", account_prompt)
 
     def complete_transaction(self, natural_text: str, from_account: str, to_account: str) -> Dict[str, Any]:
-        recent_examples_from = format_recent_transactions(self.ledger_path, from_account)
         recent_narrations_and_payees = get_recent_narrations_and_payees(self.ledger_path, to_account)
 
         prompt = f"""
 Input: \"\"\"{natural_text}\"\"\"
 Accounts: {from_account} → {to_account}
-Recent examples: {recent_narrations_and_payees}
 
-Follow the recent examples format closely. If recent examples show "Groceries", use "Groceries" not "Grocery Shopping".
+Recent examples:
+{recent_narrations_and_payees}
 
-Return JSON:
-- amount_value: number only
-- currency: code (default "USD") 
-- narration: match recent example style, 2-4 words, title case
-- payee: specific business name if mentioned, else ""
+Your task is to extract and standardize transaction details in the same format and tone as the recent examples above..
+
+Return a JSON object with the following fields:
+- amount_value: number only (e.g. 15.50)
+- currency: 3-letter code (e.g. "EUR", "USD"); default to "USD" if not mentioned
+- narration: 2–4 words in Title Case, closely matching the phrasing style in recent examples (e.g. "Lunch Out", not "Meal at Restaurant")
+- payee: specific business or place name mentioned; if none, return an empty string ""
 """
-        print(f"prompt: {prompt}")
+        logger.info(f"\n================\nComplete transaction prompt: {prompt}\n================")
         return self._ask("You complete Beancount transaction details.", prompt)
 
-    def append_from_natural_text(self, natural_text: str):
-        print("🔍 Inferring accounts...")
+    def append_from_natural_text(self, natural_text: str) -> dict:
+        logger.info("Inferring accounts...")
         accounts = self.infer_accounts(natural_text)
         from_account = accounts["from_account"]
         to_account = accounts["to_account"]
-        print(f"→ Accounts: {from_account} → {to_account}")
+        logger.info(f"→ Accounts: {from_account} → {to_account}")
 
-        print("🧠 Completing transaction fields...")
+        logger.info("Completing transaction fields...")
         details = self.complete_transaction(natural_text, from_account, to_account)
-        print(f"→ Details: {details}")
+        logger.info(f"→ Details: {details}")
 
         append_simple_tx(
             ledger_path=self.ledger_path,
             tx_date=Date.today(),
             amount_value=details["amount_value"],
-            currency=details.get("currency", DEFAULT_CURRENCY),
+            currency=details.get("currency", conf.DEFAULT_CURRENCY),
             from_account=from_account,
             to_account=to_account,
             narration=details.get("narration", ""),
             payee=details.get("payee", ""),
         )
-        print(f"✅ Transaction appended -> \n {from_account} -> {to_account}\n{details}")
 
+        logger.info(f"Transaction appended -> \n {from_account} -> {to_account}\n{details}")
+
+        return {
+            "from_account": from_account,
+            "to_account": to_account,
+            "amount_value": details["amount_value"],
+            "currency": details.get("currency", conf.DEFAULT_CURRENCY),
+            "narration": details.get("narration", ""),
+            "payee": details.get("payee", ""),
+        }
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
