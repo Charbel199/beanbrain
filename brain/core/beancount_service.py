@@ -31,7 +31,6 @@ def get_all_accounts_grouped(ledger_path: str) -> Dict[str, List[str]]:
             account_type = entry.account.split(":")[0]
             grouped_accounts[account_type].append(entry.account)
 
-    # Optional: sort accounts in each category
     for group in grouped_accounts:
         grouped_accounts[group].sort()
 
@@ -192,7 +191,7 @@ if __name__ == "__main__":
         to_account="Expenses:Personal:Groceries",
         narration="Grocery run",
     )
-   # print("Transaction appended to ledger.beancount")
+    #print("Transaction appended to ledger.beancount")
     #print(get_all_accounts_grouped(conf.BEANCOUNT_FILE))
     #print(format_recent_transactions(conf.BEANCOUNT_FILE, "Expenses:Personal:Groceries"))
     print(get_inline_account_comments_map(conf.BEANCOUNT_FILE))

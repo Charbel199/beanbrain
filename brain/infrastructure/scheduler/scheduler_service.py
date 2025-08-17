@@ -1,6 +1,4 @@
-# infrastructure/scheduler.py
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
 from dateutil.tz import gettz
 import logging, os
