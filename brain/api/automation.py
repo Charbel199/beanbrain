@@ -12,23 +12,23 @@ router = APIRouter(prefix="/automation", tags=["Automation"])
 def get_service(db: Session = Depends(get_db)) -> AutomationService:
     return AutomationService(db=db)
 
-@router.post("/automations", response_model=AutomationOut)
+@router.post("", response_model=AutomationOut)
 def create_automation(body: AutomationCreate, automation_service: AutomationService = Depends(get_service)):
     return automation_service.create(body)
 
-@router.get("/automations", response_model=List[AutomationOut])
+@router.get("", response_model=List[AutomationOut])
 def list_automations(automation_service: AutomationService = Depends(get_service)):
     return automation_service.list()
 
-@router.get("/automations/{id}", response_model=AutomationOut)
+@router.get("/{id}", response_model=AutomationOut)
 def get_automation(id: int, automation_service: AutomationService = Depends(get_service)):
     return automation_service.get(id)
 
-@router.patch("/automations/{id}", response_model=AutomationOut)
+@router.patch("/{id}", response_model=AutomationOut)
 def update_automation(id: int, body: AutomationUpdate, automation_service: AutomationService = Depends(get_service)):
     return automation_service.update(id, body)
 
-@router.delete("/automations/{id}")
+@router.delete("/{id}")
 def delete_automation(id: int, automation_service: AutomationService = Depends(get_service)):
     automation_service.delete(id)
     return {"ok": True}
