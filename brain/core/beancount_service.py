@@ -7,7 +7,7 @@ from beancount.parser import printer
 from beancount import loader
 import fcntl  # Unix only
 from collections import defaultdict
-
+import conf
 from core.log.logging_service import get_logger
 logger = get_logger(__name__)
 
@@ -184,7 +184,7 @@ def append_simple_tx(
 if __name__ == "__main__":
     # Minimal example
     append_simple_tx(
-        ledger_path="/data/budget.beancount",
+        ledger_path=conf.BEANCOUNT_FILE,
         tx_date=Date(2025, 8, 16),
         amount_value=50,
         currency="USD",
@@ -193,6 +193,6 @@ if __name__ == "__main__":
         narration="Grocery run",
     )
    # print("Transaction appended to ledger.beancount")
-    #print(get_all_accounts_grouped("/data/budget.beancount"))
-    #print(format_recent_transactions("/data/budget.beancount", "Expenses:Personal:Groceries"))
-    print(get_inline_account_comments_map("/data/budget.beancount"))
+    #print(get_all_accounts_grouped(conf.BEANCOUNT_FILE))
+    #print(format_recent_transactions(conf.BEANCOUNT_FILE, "Expenses:Personal:Groceries"))
+    print(get_inline_account_comments_map(conf.BEANCOUNT_FILE))
