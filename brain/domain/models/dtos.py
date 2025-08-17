@@ -41,7 +41,7 @@ class AutomationUpdate(BaseModel):
 
 
 class AutomationOut(AutomationBase):
-    id: int
+    id: str
     last_ran_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

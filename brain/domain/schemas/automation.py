@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, String, Boolean, DateTime, JSON
+    Column, String, Boolean, DateTime, JSON
 )
+import uuid
 from domain.schemas.database import Base
 from conf import DEFAULT_TZ
 
@@ -9,7 +10,13 @@ from conf import DEFAULT_TZ
 class AutomationDB(Base):
     __tablename__ = "automations"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        String,
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+        unique=True,
+        nullable=False,
+    )
     name = Column(String, nullable=False)
     enabled = Column(Boolean, default=True)
     

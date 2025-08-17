@@ -16,8 +16,8 @@ from domain.models.dtos import (
     AutomationOut,
 )
 
-import logging
-logger = logging.getLogger(__name__)
+from core.log.logging_service import get_logger
+logger = get_logger(__name__)
 from infrastructure.persistence.automation_repository import AutomationRepository
 from infrastructure.scheduler.scheduler import scheduler, remove_job_if_exists, print_all_jobs
 from core.beancount_service import append_simple_tx
@@ -72,8 +72,8 @@ class AutomationService:
 
     # ---------- Internal methods ----------
 
-
     def _schedule(self, a: AutomationDB) -> None:
+
         # Always clear any prior job for this automation
         remove_job_if_exists(a.id)
         if not a.enabled:
@@ -99,7 +99,7 @@ class AutomationService:
                 day_of_week=day_of_week,
                 timezone=tz
             )
-            
+
             scheduler.add_job(
                 func=self._execute_by_id,
                 trigger=trigger,
@@ -109,9 +109,10 @@ class AutomationService:
                 misfire_grace_time=3600,  # Allow 1 hour grace period for missed executions
             )
         except Exception as e:
+            print(e)
             raise HTTPException(400, f"Failed to schedule automation: {str(e)}")
 
-    def _execute_by_id(self, automation_id: int) -> None:
+    def _execute_by_id(self, automation_id: str) -> None:
         a = self.repo.get(automation_id)
         if not a or not a.enabled:
             return

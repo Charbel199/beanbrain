@@ -9,26 +9,26 @@ from conf import BEANCOUNT_FILE
 router = APIRouter(prefix="/automation", tags=["Automation"])
 
 
-def get_service(db: Session = Depends(get_db)) -> AutomationService:
+def get_automation_service(db: Session = Depends(get_db)) -> AutomationService:
     return AutomationService(db=db)
 
 @router.post("", response_model=AutomationOut)
-def create_automation(body: AutomationCreate, automation_service: AutomationService = Depends(get_service)):
+def create_automation(body: AutomationCreate, automation_service: AutomationService = Depends(get_automation_service)):
     return automation_service.create(body)
 
 @router.get("", response_model=List[AutomationOut])
-def list_automations(automation_service: AutomationService = Depends(get_service)):
+def list_automations(automation_service: AutomationService = Depends(get_automation_service)):
     return automation_service.list()
 
 @router.get("/{id}", response_model=AutomationOut)
-def get_automation(id: int, automation_service: AutomationService = Depends(get_service)):
+def get_automation(id: str, automation_service: AutomationService = Depends(get_automation_service)):
     return automation_service.get(id)
 
 @router.patch("/{id}", response_model=AutomationOut)
-def update_automation(id: int, body: AutomationUpdate, automation_service: AutomationService = Depends(get_service)):
+def update_automation(id: str, body: AutomationUpdate, automation_service: AutomationService = Depends(get_automation_service)):
     return automation_service.update(id, body)
 
 @router.delete("/{id}")
-def delete_automation(id: int, automation_service: AutomationService = Depends(get_service)):
+def delete_automation(id: str, automation_service: AutomationService = Depends(get_automation_service)):
     automation_service.delete(id)
     return {"ok": True}
