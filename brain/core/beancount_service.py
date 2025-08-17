@@ -9,6 +9,9 @@ from beancount import loader
 import fcntl  # Unix only
 from collections import defaultdict
 
+from core.log.logging_service import get_logger
+logger = get_logger(__name__)
+
 def _safe_append_to_file(path: Path, text: str, lock: bool = True):
     with open(path, "a", encoding="utf-8") as f:
         if lock:
@@ -63,6 +66,36 @@ def get_recent_narrations_and_payees(ledger_path: str, account: str, limit: int 
         for txn in recent
     ]
     return result
+
+
+
+
+def get_inline_account_comments_map(ledger_path: str) -> Dict[str, str]:
+    """
+    Extract inline comments (on the same line) for account 'Open' directives
+    by reading the raw file text.
+
+    Args:
+        ledger_path (str): Path to the Beancount ledger file.
+
+    Returns:
+        Dict[str, str]: A mapping of account names to inline comments.
+    """
+    with open(ledger_path, encoding="utf-8") as f:
+        lines = f.readlines()
+
+    entries, _, _ = loader.load_file(ledger_path)
+    comments_map = {}
+
+    for entry in entries:
+        if isinstance(entry, data.Open):
+            lineno = entry.meta["lineno"] - 1  # 0-based index
+            line = lines[lineno]
+            if ";" in line:
+                comment = line.split(";", 1)[1].strip()
+                comments_map[entry.account] = comment
+
+    return comments_map
 
 def append_simple_tx(
     ledger_path: str,
@@ -160,6 +193,7 @@ if __name__ == "__main__":
         to_account="Expenses:Personal:Groceries",
         narration="Grocery run",
     )
-    print("Transaction appended to ledger.beancount")
-    print(get_all_accounts_grouped("/data/budget.beancount"))
-    print(format_recent_transactions("/data/budget.beancount", "Expenses:Personal:Groceries"))
+   # print("Transaction appended to ledger.beancount")
+    #print(get_all_accounts_grouped("/data/budget.beancount"))
+    #print(format_recent_transactions("/data/budget.beancount", "Expenses:Personal:Groceries"))
+    print(get_inline_account_comments_map("/data/budget.beancount"))
