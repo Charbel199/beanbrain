@@ -27,8 +27,4 @@ def append_transaction_from_text(
     llm_service: LLMTransactionService = Depends(get_llm_service)
 ):
     transaction = llm_service.append_from_natural_text(body.text)
-    return {
-        "ok": True,
-        "message": "Transaction successfully appended",
-        "transaction": transaction
-    }
+    return transaction

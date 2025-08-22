@@ -133,14 +133,9 @@ Return a JSON object with the following fields:
 
         logger.info(f"Transaction appended -> \n {from_account} -> {to_account}\n{details}")
 
-        return {
-            "from_account": from_account,
-            "to_account": to_account,
-            "amount_value": details["amount_value"],
-            "currency": details.get("currency", conf.DEFAULT_CURRENCY),
-            "narration": details.get("narration", ""),
-            "payee": details.get("payee", ""),
-        }
+
+        res = f'{from_account}->{to_account} {details["amount_value"]}{details.get("currency", conf.DEFAULT_CURRENCY)}. {details.get("narration", "")} {details.get("payee", "")}'
+        return res
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
