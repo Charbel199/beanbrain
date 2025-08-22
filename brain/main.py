@@ -26,12 +26,8 @@ async def on_startup():
     app.state.scheduler = sched
 
     # Re-sync automations (loads jobs into the scheduler)
-    db = SessionLocal()
-    try:
-        service = AutomationService(db=db, scheduler=sched)
-        service.resync_all()
-    finally:
-        db.close()
+    service = AutomationService(scheduler=sched)
+    service.resync_all()
 
 
 

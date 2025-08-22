@@ -24,9 +24,8 @@ from conf import BEANCOUNT_FILE
 from infrastructure.scheduler.scheduler_service import remove_job_if_exists
 
 class AutomationService:
-    def __init__(self, db: Session, scheduler):
-        self.db = db
-        self.repo = AutomationRepository(db)
+    def __init__(self, scheduler):
+        self.repo = AutomationRepository()
         self.scheduler = scheduler
 
 
