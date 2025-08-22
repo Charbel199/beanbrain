@@ -9,7 +9,7 @@ services:
       context: ./fava
       dockerfile: docker/Dockerfile
     ports:
-      - ${FAVA_EXTERNAL_PORT}:5000
+      - 127.0.0.1:${FAVA_EXTERNAL_PORT}:5000
     volumes:
       - ./data/${LOCAL_BEANCOUNT_FILE_NAME}:/data/budget.beancount:rw
     command: fava --host 0.0.0.0 --port 5000 --poll-watcher /data/budget.beancount
@@ -24,7 +24,7 @@ services:
       context: ./brain
       dockerfile: docker/Dockerfile
     ports:
-      - "${BRAIN_EXTERNAL_PORT}:8000"
+      - "127.0.0.1:${BRAIN_EXTERNAL_PORT}:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
