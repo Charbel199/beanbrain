@@ -9,10 +9,10 @@ router = APIRouter(prefix="/automation", tags=["Automation"])
 
 
 def get_automation_service(
-    request: Request, db: Session = Depends(get_db)
+    request: Request
 ) -> AutomationService:
     scheduler = request.app.state.scheduler
-    return AutomationService(db=db, scheduler=scheduler)
+    return AutomationService(scheduler=scheduler)
 
 @router.post("", response_model=AutomationOut)
 def create_automation(body: AutomationCreate, automation_service: AutomationService = Depends(get_automation_service)):
