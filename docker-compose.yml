@@ -12,7 +12,7 @@ services:
       - ${FAVA_EXTERNAL_PORT}:5000
     volumes:
       - ./data/${LOCAL_BEANCOUNT_FILE_NAME}:/data/budget.beancount:rw
-    command: fava --host 0.0.0.0 --port 5000 --poll-watcher /data/budget.beancount
+    command: fava --host 127.0.0.1 --port 5000 --poll-watcher /data/budget.beancount
     restart: unless-stopped
 
   ############################################
@@ -50,5 +50,5 @@ services:
       - ./backup:/app
       - ./data:/data
       - ./data/${LOCAL_BEANCOUNT_FILE_NAME}:/data/budget.beancount:rw
-      - ~/.config/rclone:/root/.config/rclone
+      - ${RCLONE_ROOT}/.config/rclone:/root/.config/rclone
     profiles: ["backup"]
