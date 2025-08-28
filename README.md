@@ -130,6 +130,21 @@ curl -X PATCH "http://localhost:BRAIN_EXTERNAL_PORT/automation/automations/1" \
   }'
 ```
 
+### Create a Transaction via LLM
+
+Set `OPENAI_API_KEY` in your `.env` for this endpoint to work.
+
+```bash
+curl -X POST "http://localhost:BRAIN_EXTERNAL_PORT/llm/append" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Bought groceries at Carrefour for 23.50 EUR using my wallet"
+  }'
+```
+
+- The service will infer appropriate accounts and amounts based on your ledger, recent entries, and any inline comments on account Open directives.
+- The generated transaction will be appended to your Beancount file configured at `BEANCOUNT_FILE`.
+
 ## Configuration
 
 ### Main Environment Variables
