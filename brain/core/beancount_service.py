@@ -177,7 +177,7 @@ def append_simple_tx(
     if errors:
         raise ValueError(f"Beancount validation failed: {errors[0]}")
 
-    _safe_append_to_file(ledger, open_block + rendered_tx + "\n")
+    _safe_append_to_file(ledger, open_block + "\n" + rendered_tx + "\n")
 
 
 if __name__ == "__main__":
